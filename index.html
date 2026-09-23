@@ -1,1 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Attendance Portal</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+
+    /* Background Canvas */
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Container UI */
+    .container {
+      position: relative;
+      z-index: 10;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 24px;
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2rem;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Search & Controls */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-bar {
+      flex: 1;
+      min-width: 250px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .search-bar:focus {
+      border-color: #38bdf8;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+
+    /* Table */
+    .table-wrapper {
+      max-height: 500px;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background-color: #1e293b;
+      padding: 12px 16px;
+      color: #38bdf8;
+      font-weight: 600;
+      border-bottom: 2px solid #334155;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #334155;
+      font-size: 0.9rem;
+    }
+
+    tr:hover {
+      background-color: rgba(51, 65, 85, 0.5);
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge-bscai { background-color: #0284c7; color: #fff; }
+    .badge-bt { background-color: #6366f1; color: #fff; }
+
+    .unnamed {
+      color: #64748b;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Canvas background animation -->
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="container">
+    <h1>Attendance Dataset</h1>
+
+    <div class="controls">
+      <input type="text" id="searchInput" class="search-bar" placeholder="Search by Roll Number, Name, or Email...">
+    </div>
+
+    <div class="stats">
+      <span>Total Attendees: <strong id="totalCount" style="color: #f8fafc;">0</strong></span>
+      <span>Format: <strong style="color: #38bdf8;">BT/XXXXX/26 & BSCAI/XXXXX/26</strong></span>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Roll Number</th>
+            <th>Name</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Rows inserted via JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // DATASET
+    // -------------------------------------------------------------
+    const dataset = [
+      { name: "Ritu Kumari", roll: "BSCAI/60034/26", email: "bscai60034.26@bitmesra.ac.in" },
+      { name: "Nikunj Kumari", roll: "BSCAI/60018/26", email: "bscai60018.26@bitmesra.ac.in" },
+      { name: "Puja Kumari", roll: "BT/60052/26", email: "btech60052.26@bitmesra.ac.in" },
+      { name: "Christy Dutta", roll: "BT/60085/26", email: "btech60085.26@bitmesra.ac.in" },
+      { name: "Samridhi Priya", roll: "BT/60027/26", email: "btech60027.26@bitmesra.ac.in" },
+      { name: "Palak Bibhuti", roll: "BT/60110/26", email: "palak.bibhuti@gmail.com" },
+      { name: "Anjali Bharti", roll: "BT/60029/26", email: "btech60029.26@bitmesra.ac.in" },
+      { name: "Ritika Sahu", roll: "BT/60042/26", email: "btech60042.26@bitmesra.ac.in" },
+      { name: "Sagar Gupta", roll: "BT/60035/26", email: "btech60035.26@bitmesra.ac.in" },
+      { name: "Prasenjeet Kumar", roll: "BT/60011/26", email: "btech60011.26@bitmesra.ac.in" },
+      { name: "Rehan Basu", roll: "BT/60032/26", email: "btech60032.26@bitmesra.ac.in" },
+      { name: "Ritisha Verma", roll: "BT/60091/26", email: "srivastava.santosh009@gmail.com" },
+      { name: "Akshat Shanker", roll: "BT/60054/26", email: "akshat.shanker.143@gmail.com" },
+      { name: "Pushkar Pratap Singh", roll: "BT/60061/26" },
+      { name: "Ujjwal Kumar", roll: "BT/60064/26" },
+      { roll: "BT/60041/26" },
+      { roll: "BT/60043/26" },
+      { roll: "BT/60048/26" },
+      { roll: "BT/60025/26" },
+      { roll: "BT/60105/26" },
+      { roll: "BT/60004/26" },
+      { roll: "BT/60053/26" },
+      { roll: "BT/60062/26" },
+      { roll: "BT/60044/26" },
+      { roll: "BT/60049/26" },
+      { roll: "BT/60005/26" },
+      { roll: "BT/60015/26" },
+      { roll: "BT/60096/26" },
+      { roll: "BT/60095/26" },
+      { roll: "BT/60087/26" },
+      { roll: "BT/60088/26" }
+    ];
+
+    // -------------------------------------------------------------
+    // RENDER TABLE & SEARCH LOGIC
+    // -------------------------------------------------------------
+    const tableBody = document.getElementById('tableBody');
+    const searchInput = document.getElementById('searchInput');
+    const totalCountEl = document.getElementById('totalCount');
+
+    function renderTable(filterQuery = '') {
+      tableBody.innerHTML = '';
+      const query = filterQuery.toLowerCase().trim();
+
+      const filteredData = dataset.filter(student => {
+        const name = (student.name || '').toLowerCase();
+        const roll = (student.roll || '').toLowerCase();
+        const email = (student.email || '').toLowerCase();
+        return name.includes(query) || roll.includes(query) || email.includes(query);
+      });
+
+      totalCountEl.textContent = filteredData.length;
+
+      filteredData.forEach((student, index) => {
+        const row = document.createElement('tr');
+
+        const isBSCAI = student.roll.startsWith('BSCAI');
+        const badgeClass = isBSCAI ? 'badge-bscai' : 'badge-bt';
+
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td><span class="badge ${badgeClass}">${student.roll}</span></td>
+          <td>${student.name ? student.name : '<span class="unnamed">Not Specified</span>'}</td>
+          <td>${student.email ? student.email : '<span class="unnamed">N/A</span>'}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    searchInput.addEventListener('input', (e) => renderTable(e.target.value));
+    renderTable();
+
+    // -------------------------------------------------------------
+    // CANVAS BACKGROUND ANIMATION
+    // -------------------------------------------------------------
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const particles = [];
+    const particleCount = 60;
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        radius: Math.random() * 2 + 1
+      });
+    }
+
+    function animateCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p, index) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.fill();
+
+        for (let j = index + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${1 - dist / 120})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      });
+
+      requestAnimationFrame(animateCanvas);
+    }
+    animateCanvas();
+  </script>
+</body>
+</html>
 
